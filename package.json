@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "centrifuge": "^5.2.0",
+    "ws": "^8.17.1"
+  }
+}
