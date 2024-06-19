@@ -1,5 +1,7 @@
 import { Centrifuge } from "centrifuge";
 import { WebSocket } from "ws";
+// const { Centrifuge } = require("centrifuge");
+// const { WebSocket } = require("ws");
 
 // live
 const token =
@@ -10,6 +12,57 @@ const socket = "wss://api.prod.rabbitx.io/ws";
 //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwIiwiZXhwIjo1MjYyNjUyMDEwfQ.x_245iYDEvTTbraw1gt4jmFRFfgMJb-GJ-hsU9HuDik";
 // const socket = "wss://api.testnet.rabbitx.io/ws";
 
+export const marketIds = [
+  "BTC-USD",
+  "ETH-USD",
+  "SOL-USD",
+  "ARB-USD",
+  "DOGE-USD",
+  "LDO-USD",
+  "SUI-USD",
+  "PEPE1000-USD",
+  "BCH-USD",
+  "XRP-USD",
+  "WLD-USD",
+  "TON-USD",
+  "STX-USD",
+  "MATIC-USD",
+  "TRB-USD",
+  "APT-USD",
+  "INJ-USD",
+  "AAVE-USD",
+  "LINK-USD",
+  "BNB-USD",
+  "RNDR-USD",
+  "MKR-USD",
+  "RLB-USD",
+  "ORDI-USD",
+  "STG-USD",
+  "SATS1000000-USD",
+  "TIA-USD",
+  "BLUR-USD",
+  "JTO-USD",
+  "MEME-USD",
+  "SEI-USD",
+  "YES-USD",
+  "WIF-USD",
+  "STRK-USD",
+  "SHIB1000-USD",
+  "BOME-USD",
+  "SLERF-USD",
+  "W-USD",
+  "ENA-USD",
+  "PAC-USD",
+  "MAGA-USD",
+  "TRUMP-USD",
+  "MOG1000-USD",
+  "NOT-USD",
+  "MOTHER-USD",
+  "BONK1000-USD",
+  "TAIKO-USD",
+  "FLOKI1000-USD",
+];
+
 const orderbook = {
   bids: [],
   asks: [],
@@ -18,6 +71,7 @@ const orderbook = {
   bidsLen: 0,
   asksLen: 0,
   disconnects: 0,
+  marketId: marketIds[Math.floor(Math.random() * marketIds.length)],
 };
 
 const clearOrderBook = () => {
@@ -74,7 +128,6 @@ const checkIntegrity = (ctx) => {
   const prevSeq = orderbook.sequence;
   const newSeq = ctx.data.sequence;
   if (prevSeq && prevSeq + 1 != newSeq) {
-    // throw new Error("Missed push!");
     orderbook.disconnects += 1;
     clearOrderBook();
     restartConnection();
@@ -88,13 +141,13 @@ const checkIntegrity = (ctx) => {
 
 let reconnectProc;
 
-const centrifuge = new Centrifuge(socket, {
+export const centrifuge = new Centrifuge(socket, {
   debug: true,
   websocket: WebSocket,
 });
 centrifuge.setToken(token);
 
-const sub = centrifuge.newSubscription("orderbook:BTC-USD");
+const sub = centrifuge.newSubscription(`orderbook:${orderbook.marketId}`);
 
 centrifuge.on("connected", () => {
   clearInterval(reconnectProc);
@@ -126,4 +179,4 @@ sub.on("publication", (ctx) => {
 
 sub.subscribe();
 
-centrifuge.connect();
+// centrifuge.connect();
