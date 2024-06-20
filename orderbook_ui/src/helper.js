@@ -1,5 +1,6 @@
 import { Centrifuge } from "centrifuge";
-import { WebSocket } from "ws";
+// import { WebSocket } from "ws";
+// import { SockJS } from "sockjs";
 // const { Centrifuge } = require("centrifuge");
 // const { WebSocket } = require("ws");
 
@@ -63,7 +64,9 @@ export const marketIds = [
   "FLOKI1000-USD",
 ];
 
-const orderbook = {
+const subs = {};
+
+export const orderbook = {
   bids: [],
   asks: [],
   sequence: null,
@@ -71,7 +74,7 @@ const orderbook = {
   bidsLen: 0,
   asksLen: 0,
   disconnects: 0,
-  marketId: marketIds[Math.floor(Math.random() * marketIds.length)],
+  marketId: null,
 };
 
 const clearOrderBook = () => {
@@ -83,7 +86,7 @@ const clearOrderBook = () => {
   orderbook.asksLen = 0;
 };
 
-const addToOrderBook = (ctx, group) => {
+export const addToOrderBook = (ctx, group) => {
   // iterate through each of the entries in either the asks or bids array for the current update
   for (let trans of ctx.data[group]) {
     // locate the price level of the current update
@@ -117,17 +120,30 @@ const addToOrderBook = (ctx, group) => {
       orderbook[group][idx] = trans;
     }
   }
+  orderbook[group] = [...orderbook[group]];
 };
 
 const restartConnection = () => {
-  sub.unsubscribe();
-  sub.subscribe();
+  disconnectFrom(orderbook.marketId);
+  connectTo(orderbook.marketId);
 };
 
-const checkIntegrity = (ctx) => {
+export const disconnectFrom = (market) => {
+  console.log(subs);
+  if (subs[market]) {
+    subs[market].unsubscribe();
+    subs[market].removeAllListeners();
+    centrifuge.removeSubscription(subs[market]);
+    delete subs[market];
+  }
+  console.log(subs);
+};
+
+export const checkIntegrity = (ctx) => {
   const prevSeq = orderbook.sequence;
   const newSeq = ctx.data.sequence;
   if (prevSeq && prevSeq + 1 != newSeq) {
+    console.log(newSeq, prevSeq);
     orderbook.disconnects += 1;
     clearOrderBook();
     restartConnection();
@@ -143,11 +159,10 @@ let reconnectProc;
 
 export const centrifuge = new Centrifuge(socket, {
   debug: true,
-  websocket: WebSocket,
+  // websocket: SockJS,
+  // websocket: WebSocket,
 });
 centrifuge.setToken(token);
-
-const sub = centrifuge.newSubscription(`orderbook:${orderbook.marketId}`);
 
 centrifuge.on("connected", () => {
   clearInterval(reconnectProc);
@@ -161,22 +176,18 @@ centrifuge.on("disconnected", () => {
   }, 5000);
 });
 
-sub.on("subscribed", (ctx) => {
-  orderbook.bids = ctx.data.bids;
-  orderbook.asks = ctx.data.asks;
-  orderbook.sequence = ctx.data.sequence;
-  orderbook.timestamp = ctx.data.timestamp;
-  orderbook.bidsLen = orderbook.bids.length;
-  orderbook.asksLen = orderbook.asks.length;
-  console.log(orderbook);
-});
+export const connectTo = (market) => {
+  orderbook.marketId = market;
+  if (market in subs) {
+    subs[market].subscribe();
+  } else {
+    subs[market] = centrifuge.newSubscription(
+      `orderbook:${orderbook.marketId}`,
+    );
+    orderbook.marketId = market;
+  }
+  subs[market].subscribe();
+  return subs[market];
+};
 
-sub.on("publication", (ctx) => {
-  checkIntegrity(ctx);
-  addToOrderBook(ctx, "asks");
-  addToOrderBook(ctx, "bids");
-});
-
-sub.subscribe();
-
-// centrifuge.connect();
+centrifuge.connect();

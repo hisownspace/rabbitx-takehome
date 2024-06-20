@@ -66,3 +66,29 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.card {
+  /* display: flex; */
+}
+
+td {
+  width: 150px;
+}
+
+canvas {
+  width: 500px;
+  height: 250px;
+  color: blue;
+}
+
+.bullish {
+  color: green;
+}
+
+.bearish {
+  color: red;
+}
+
+.neutral {
+  color: white;
+}
