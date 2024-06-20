@@ -88,6 +88,7 @@ const clearOrderBook = () => {
 
 export const addToOrderBook = (ctx, group) => {
   // iterate through each of the entries in either the asks or bids array for the current update
+  // if (ctx.data.sequence !== orderbook.sequence + 1) return;
   for (let trans of ctx.data[group]) {
     // locate the price level of the current update
     const idx = orderbook[group].findIndex(
@@ -123,10 +124,10 @@ export const addToOrderBook = (ctx, group) => {
   orderbook[group] = [...orderbook[group]];
 };
 
-const restartConnection = () => {
-  disconnectFrom(orderbook.marketId);
-  connectTo(orderbook.marketId);
-};
+// const restartConnection = () => {
+// disconnectFrom(orderbook.marketId);
+// connectTo(orderbook.marketId);
+// };
 
 export const disconnectFrom = (market) => {
   console.log(subs);

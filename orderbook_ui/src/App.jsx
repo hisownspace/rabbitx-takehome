@@ -28,6 +28,7 @@ function App() {
   useEffect(() => {
     if (sub) {
       sub.on("subscribed", (ctx) => {
+        // Fills the orderbook object with the values the orderbook received from the server
         orderbook.bids = ctx.data.bids;
         orderbook.asks = ctx.data.asks;
         orderbook.sequence = ctx.data.sequence;
@@ -40,6 +41,7 @@ function App() {
       });
 
       sub.on("publication", (ctx) => {
+        // Updates the orderbook object every time an update is made
         const good = checkIntegrity(ctx);
         if (!good) {
           sub.unsubscribe();
@@ -54,25 +56,16 @@ function App() {
         if (orderbook.asks.length && orderbook.bids.length) {
           const high = parseInt(orderbook.asks[0][0]);
           const low = parseInt(orderbook.bids[orderbook.bids.length - 1][0]);
-          setMarketRates((arr) => [...arr, (high + low) / 2]);
+          setMarketRates((arr) => [(high + low) / 2, ...arr].slice(0, 100));
         }
       });
     }
-    return () => {
-      setSub();
-    };
   }, [sub]);
-
-  useEffect(() => {
-    if (marketRates.length >= 100) {
-      setMarketRates((arr) => [...arr.slice(1)]);
-    }
-  }, [marketRates]);
 
   useEffect(() => {
     // useEffect to handle logic for graph showing market price over last 100 transactions
     const canvas = canvasRef.current;
-    const len = marketRates.length;
+    console.log(marketRates);
 
     const context = canvas.getContext("2d");
 
@@ -81,8 +74,8 @@ function App() {
       canvas.height = 250;
       canvas.style.background = "#ddf";
 
-      const time = canvas.width / len - 1;
-      const startValue = marketRates[0];
+      const time = canvas.width / (marketRates.length - 1);
+      const startValue = marketRates[marketRates.length - 1];
       const startPoint = 0;
 
       context.beginPath();
@@ -92,7 +85,7 @@ function App() {
       const avg =
         marketRates.reduce((accum, curr) => {
           return accum + curr;
-        }, 1) / len;
+        }, 1) / marketRates.length;
 
       const graphMax = Math.ceil(avg / 25) * 25;
       const graphMin = Math.floor(avg / 25) * 25;
@@ -100,7 +93,7 @@ function App() {
       context.fillText(graphMax, 0, 10);
       context.fillText(graphMin, 0, canvas.height);
 
-      marketRates.forEach((rate, idx) => {
+      marketRates.toReversed().forEach((rate, idx) => {
         const newTime = startPoint + time * idx;
         context.lineTo(
           newTime,
@@ -203,15 +196,15 @@ function App() {
             className={
               marketRates.reduce((accum, curr) => {
                 return accum + curr;
-              }, 1) /
+              }, 0) /
                 marketRates.length <
-              marketRates[marketRates.length - 1]
+              marketRates[0]
                 ? "bullish"
                 : marketRates.reduce((accum, curr) => {
                       return accum + curr;
-                    }, 1) /
+                    }, 0) /
                       marketRates.length ===
-                    marketRates[marketRates.length - 1]
+                    marketRates[0]
                   ? "neutral"
                   : "bearish"
             }
