@@ -56,7 +56,7 @@ function App() {
         if (orderbook.asks.length && orderbook.bids.length) {
           const high = parseInt(orderbook.asks[0][0]);
           const low = parseInt(orderbook.bids[orderbook.bids.length - 1][0]);
-          setMarketRates((arr) => [(high + low) / 2, ...arr].slice(0, 100));
+          setMarketRates((arr) => [(high + low) / 2, ...arr].slice(0, 500));
         }
       });
     }
@@ -65,7 +65,7 @@ function App() {
   useEffect(() => {
     // useEffect to handle logic for graph showing market price over last 100 transactions
     const canvas = canvasRef.current;
-    console.log(marketRates);
+    // console.log(marketRates);
 
     const context = canvas.getContext("2d");
 
@@ -87,12 +87,16 @@ function App() {
           return accum + curr;
         }, 1) / marketRates.length;
 
-      const graphMax = Math.ceil(avg / 25) * 25;
-      const graphMin = Math.floor(avg / 25) * 25;
+      const grain = Math.round(avg / 1000);
+      console.log(grain);
+
+      let graphMax = Math.ceil(avg / grain) * grain;
+      let graphMin = Math.floor(avg / grain) * grain;
 
       context.fillText(graphMax, 0, 10);
       context.fillText(graphMin, 0, canvas.height);
 
+      // iterate through marketRates array to rates during last 100 sequences
       marketRates.toReversed().forEach((rate, idx) => {
         const newTime = startPoint + time * idx;
         context.lineTo(
