@@ -142,17 +142,20 @@ export const disconnectFrom = (market) => {
 export const checkIntegrity = (ctx) => {
   const prevSeq = orderbook.sequence;
   const newSeq = ctx.data.sequence;
-  if (prevSeq && prevSeq + 1 != newSeq) {
+  if (prevSeq && prevSeq + 1 != newSeq && prevSeq != newSeq) {
+    console.log("DISCONNECTED!!!!!");
     console.log(newSeq, prevSeq);
     orderbook.disconnects += 1;
     clearOrderBook();
-    restartConnection();
+    // restartConnection();
+    return false;
   }
   orderbook.timestamp = ctx.data.timestamp;
   orderbook.sequence = newSeq;
   if (newSeq % 100 === 0) {
     console.log(orderbook);
   }
+  return true;
 };
 
 let reconnectProc;

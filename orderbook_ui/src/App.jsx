@@ -6,6 +6,7 @@ import {
   orderbook,
   checkIntegrity,
   addToOrderBook,
+  centrifuge,
 } from "./helper";
 import "./App.css";
 
@@ -33,20 +34,33 @@ function App() {
         orderbook.timestamp = ctx.data.timestamp;
         orderbook.bidsLen = orderbook.bids.length;
         orderbook.asksLen = orderbook.asks.length;
+        setAsks(orderbook.asks);
+        setBids(orderbook.bids);
         console.log(orderbook);
       });
 
       sub.on("publication", (ctx) => {
-        checkIntegrity(ctx);
+        const good = checkIntegrity(ctx);
+        if (!good) {
+          sub.unsubscribe();
+          sub.removeAllListeners();
+          setSub(connectTo(market));
+          return;
+        }
         addToOrderBook(ctx, "asks");
         addToOrderBook(ctx, "bids");
         setAsks(orderbook.asks);
         setBids(orderbook.bids);
-        const high = parseInt(orderbook.asks[0][0]);
-        const low = parseInt(orderbook.bids[orderbook.bids.length - 1][0]);
-        setMarketRates((arr) => [...arr, (high + low) / 2]);
+        if (orderbook.asks.length && orderbook.bids.length) {
+          const high = parseInt(orderbook.asks[0][0]);
+          const low = parseInt(orderbook.bids[orderbook.bids.length - 1][0]);
+          setMarketRates((arr) => [...arr, (high + low) / 2]);
+        }
       });
     }
+    return () => {
+      setSub();
+    };
   }, [sub]);
 
   useEffect(() => {
@@ -56,27 +70,22 @@ function App() {
   }, [marketRates]);
 
   useEffect(() => {
+    // useEffect to handle logic for graph showing market price over last 100 transactions
     const canvas = canvasRef.current;
     const len = marketRates.length;
 
     const context = canvas.getContext("2d");
-    if (asks.length && bids.length && marketRates.length >= 100) {
-      context.globalCompositeOperation = "copy";
-      context.drawImage(context.canvas, -50, 0);
-      // reset back to normal for subsequent operations.
-      context.globalCompositeOperation = "source-over";
-    }
 
     if (asks.length && bids.length) {
       canvas.width = 500;
       canvas.height = 250;
       canvas.style.background = "#ddf";
 
-      context.beginPath();
-
-      const time = canvas.width / len;
+      const time = canvas.width / len - 1;
       const startValue = marketRates[0];
       const startPoint = 0;
+
+      context.beginPath();
 
       context.moveTo(startPoint, startValue);
 
@@ -92,7 +101,7 @@ function App() {
       context.fillText(graphMin, 0, canvas.height);
 
       marketRates.forEach((rate, idx) => {
-        const newTime = startPoint + time * (idx + 1);
+        const newTime = startPoint + time * idx;
         context.lineTo(
           newTime,
           canvas.height -
@@ -101,10 +110,14 @@ function App() {
       });
 
       context.stroke();
-    }
 
-    context.closePath();
-  }, [asks, bids]);
+      context.closePath();
+    }
+  }, [marketRates]);
+
+  // useEffect(() => {
+  //   centrifuge.connect();
+  // }, [centrifuge]);
 
   const changeMarket = (e) => {
     e.stopPropagation();
@@ -185,17 +198,27 @@ function App() {
             </tbody>
           </table>
         </div>
-        <h4
-          className={
-            marketRates[0] < marketRates[marketRates.length - 1]
-              ? "bullish"
-              : marketRates[0] === marketRates[marketRates.length - 1]
-                ? "neutral"
-                : "bearish"
-          }
-        >
-          ${marketRates[marketRates.length - 1]}
-        </h4>
+        {marketRates.length ? (
+          <h4
+            className={
+              marketRates.reduce((accum, curr) => {
+                return accum + curr;
+              }, 1) /
+                marketRates.length <
+              marketRates[marketRates.length - 1]
+                ? "bullish"
+                : marketRates.reduce((accum, curr) => {
+                      return accum + curr;
+                    }, 1) /
+                      marketRates.length ===
+                    marketRates[marketRates.length - 1]
+                  ? "neutral"
+                  : "bearish"
+            }
+          >
+            ${marketRates[marketRates.length - 1]}
+          </h4>
+        ) : null}
         <canvas ref={canvasRef} />
       </div>
     </>
