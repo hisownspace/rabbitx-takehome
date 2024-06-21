@@ -126,7 +126,7 @@ export const addToOrderBook = (ctx, group) => {
 export const checkIntegrity = (ctx) => {
   const prevSeq = orderbook.sequence;
   const newSeq = ctx.data.sequence;
-  if ((prevSeq && prevSeq + 1 != newSeq) || newSeq % 200 === 0) {
+  if (prevSeq && prevSeq + 1 != newSeq) {
     orderbook.disconnects += 1;
     return false;
   }
@@ -146,18 +146,6 @@ export const centrifuge = new Centrifuge(socket, {
   // websocket: WebSocket,
 });
 centrifuge.setToken(token);
-
-// centrifuge.on("connected", () => {
-//   clearInterval(reconnectProc);
-// });
-//
-// centrifuge.on("disconnected", () => {
-//   console.log("Disconnected!");
-//   reconnectProc = setInterval(() => {
-//     console.log("Attemping to reconnect...");
-//     centrifuge.connect();
-//   }, 5000);
-// });
 
 export const disconnect = () => {
   centrifuge.disconnect();

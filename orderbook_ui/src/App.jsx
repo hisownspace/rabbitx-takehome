@@ -20,8 +20,8 @@ function App() {
   useEffect(() => {
     if (market) {
       setSub(connectTo(market));
-      setMarketRates([]);
     }
+    setMarketRates([]);
   }, [market]);
 
   useEffect(() => {
