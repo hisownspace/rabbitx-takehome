@@ -77,7 +77,7 @@ export const orderbook = {
   marketId: null,
 };
 
-const clearOrderBook = () => {
+export const clearOrderBook = () => {
   orderbook.bids = [];
   orderbook.asks = [];
   orderbook.sequence = null;
@@ -87,8 +87,7 @@ const clearOrderBook = () => {
 };
 
 export const addToOrderBook = (ctx, group) => {
-  // iterate through each of the entries in either the asks or bids array for the current update
-  // if (ctx.data.sequence !== orderbook.sequence + 1) return;
+  // iterates through each of the entries in either the asks or bids array for the current update
   for (let trans of ctx.data[group]) {
     // locate the price level of the current update
     const idx = orderbook[group].findIndex(
@@ -124,31 +123,11 @@ export const addToOrderBook = (ctx, group) => {
   orderbook[group] = [...orderbook[group]];
 };
 
-// const restartConnection = () => {
-// disconnectFrom(orderbook.marketId);
-// connectTo(orderbook.marketId);
-// };
-
-export const disconnectFrom = (market) => {
-  console.log(subs);
-  if (subs[market]) {
-    subs[market].unsubscribe();
-    subs[market].removeAllListeners();
-    centrifuge.removeSubscription(subs[market]);
-    delete subs[market];
-  }
-  console.log(subs);
-};
-
 export const checkIntegrity = (ctx) => {
   const prevSeq = orderbook.sequence;
   const newSeq = ctx.data.sequence;
-  if (prevSeq && prevSeq + 1 != newSeq && prevSeq != newSeq) {
-    console.log("DISCONNECTED!!!!!");
-    console.log(newSeq, prevSeq);
+  if ((prevSeq && prevSeq + 1 != newSeq) || newSeq % 200 === 0) {
     orderbook.disconnects += 1;
-    clearOrderBook();
-    // restartConnection();
     return false;
   }
   orderbook.timestamp = ctx.data.timestamp;
@@ -180,10 +159,16 @@ centrifuge.on("disconnected", () => {
   }, 5000);
 });
 
+export const disconnect = () => {
+  centrifuge.disconnect();
+};
+
 export const connectTo = (market) => {
   orderbook.marketId = market;
   if (market in subs) {
+    console.log("CONNECTING TO", market);
     subs[market].subscribe();
+    return subs[market];
   } else {
     subs[market] = centrifuge.newSubscription(
       `orderbook:${orderbook.marketId}`,

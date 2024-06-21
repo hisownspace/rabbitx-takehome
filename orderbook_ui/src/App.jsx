@@ -2,12 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import {
   marketIds,
   connectTo,
-  disconnectFrom,
   orderbook,
   checkIntegrity,
   addToOrderBook,
-  centrifuge,
-} from "./helper";
+} from "./helpers";
 import "./App.css";
 
 function App() {
@@ -17,6 +15,7 @@ function App() {
   const [bids, setBids] = useState([]);
   const [marketRates, setMarketRates] = useState([]);
   const [sub, setSub] = useState();
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
     if (market) {
@@ -26,9 +25,10 @@ function App() {
   }, [market]);
 
   useEffect(() => {
-    if (sub) {
+    if (sub && connected) {
       sub.on("subscribed", (ctx) => {
         // Fills the orderbook object with the values the orderbook received from the server
+        // clearOrderBook();
         orderbook.bids = ctx.data.bids;
         orderbook.asks = ctx.data.asks;
         orderbook.sequence = ctx.data.sequence;
@@ -37,22 +37,24 @@ function App() {
         orderbook.asksLen = orderbook.asks.length;
         setAsks(orderbook.asks);
         setBids(orderbook.bids);
-        console.log(orderbook);
       });
 
       sub.on("publication", (ctx) => {
         // Updates the orderbook object every time an update is made
-        const good = checkIntegrity(ctx);
-        if (!good) {
+        const sequential = checkIntegrity(ctx);
+        // if the sequence numbers do not match up, the subscription is reset
+        if (!sequential) {
           sub.unsubscribe();
+          // `connected` toggle will re-init the listeners when reconnecting
           sub.removeAllListeners();
-          setSub(connectTo(market));
-          return;
+          setConnected(false);
+          sub.subscribe();
         }
         addToOrderBook(ctx, "asks");
         addToOrderBook(ctx, "bids");
         setAsks(orderbook.asks);
         setBids(orderbook.bids);
+        // Adds the new market rate to the marketRates array
         if (orderbook.asks.length && orderbook.bids.length) {
           const high = parseFloat(orderbook.asks[0][0]);
           const low = parseFloat(orderbook.bids[orderbook.bids.length - 1][0]);
@@ -60,7 +62,10 @@ function App() {
         }
       });
     }
-  }, [sub]);
+    if (!connected && sub) {
+      setConnected(true);
+    }
+  }, [sub, connected]);
 
   useEffect(() => {
     // useEffect to handle logic for graph showing market price over last 100 transactions
@@ -126,7 +131,9 @@ function App() {
   const changeMarket = (e) => {
     // when a new market is selected, disconnect from the current market, and then set the new market with a useState
     e.stopPropagation();
-    disconnectFrom(market);
+    if (sub) {
+      sub.unsubscribe();
+    }
     setMarket(e.target.value);
   };
 
@@ -191,7 +198,10 @@ function App() {
                   : "bearish"
             }
           >
-            ${marketRates[marketRates.length - 1]}
+            $
+            {marketRates[marketRates.length - 1] > 10
+              ? marketRates[marketRates.length - 1]
+              : marketRates[marketRates.length - 1].toFixed(7)}
           </h4>
         ) : null}
         <canvas ref={canvasRef} />
