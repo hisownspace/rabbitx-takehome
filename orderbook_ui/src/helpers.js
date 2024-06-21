@@ -138,7 +138,7 @@ export const checkIntegrity = (ctx) => {
   return true;
 };
 
-let reconnectProc;
+// let reconnectProc;
 
 export const centrifuge = new Centrifuge(socket, {
   debug: true,
@@ -147,17 +147,17 @@ export const centrifuge = new Centrifuge(socket, {
 });
 centrifuge.setToken(token);
 
-centrifuge.on("connected", () => {
-  clearInterval(reconnectProc);
-});
-
-centrifuge.on("disconnected", () => {
-  console.log("Disconnected!");
-  reconnectProc = setInterval(() => {
-    console.log("Attemping to reconnect...");
-    centrifuge.connect();
-  }, 5000);
-});
+// centrifuge.on("connected", () => {
+//   clearInterval(reconnectProc);
+// });
+//
+// centrifuge.on("disconnected", () => {
+//   console.log("Disconnected!");
+//   reconnectProc = setInterval(() => {
+//     console.log("Attemping to reconnect...");
+//     centrifuge.connect();
+//   }, 5000);
+// });
 
 export const disconnect = () => {
   centrifuge.disconnect();
@@ -166,7 +166,6 @@ export const disconnect = () => {
 export const connectTo = (market) => {
   orderbook.marketId = market;
   if (market in subs) {
-    console.log("CONNECTING TO", market);
     subs[market].subscribe();
     return subs[market];
   } else {

@@ -198,10 +198,7 @@ function App() {
                   : "bearish"
             }
           >
-            $
-            {marketRates[marketRates.length - 1] > 10
-              ? marketRates[marketRates.length - 1]
-              : marketRates[marketRates.length - 1].toFixed(7)}
+            ${marketRates[0] > 10 ? marketRates[0] : marketRates[0].toFixed(7)}
           </h4>
         ) : null}
         <canvas ref={canvasRef} />
