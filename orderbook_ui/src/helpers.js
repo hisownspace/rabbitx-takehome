@@ -132,9 +132,6 @@ export const checkIntegrity = (ctx) => {
   }
   orderbook.timestamp = ctx.data.timestamp;
   orderbook.sequence = newSeq;
-  if (newSeq % 100 === 0) {
-    console.log(orderbook);
-  }
   return true;
 };
 

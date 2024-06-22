@@ -18,7 +18,6 @@ function App() {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    setMarketRates([]);
     if (market) {
       setSub(connectTo(market));
     }
@@ -37,6 +36,12 @@ function App() {
         orderbook.asksLen = orderbook.asks.length;
         setAsks(orderbook.asks);
         setBids(orderbook.bids);
+        setMarketRates([]);
+        if (orderbook.asks.length && orderbook.bids.length) {
+          const high = parseFloat(orderbook.asks[0][0]);
+          const low = parseFloat(orderbook.bids[orderbook.bids.length - 1][0]);
+          setMarketRates((arr) => [(high + low) / 2, ...arr].slice(0, 250));
+        }
       });
 
       sub.on("publication", (ctx) => {
@@ -70,7 +75,6 @@ function App() {
   useEffect(() => {
     // useEffect to handle logic for graph showing market price over last 100 transactions
     const canvas = canvasRef.current;
-    // console.log(marketRates);
 
     const context = canvas.getContext("2d");
 
