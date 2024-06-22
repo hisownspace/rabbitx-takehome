@@ -20,16 +20,9 @@ function App() {
   useEffect(() => {
     if (market) {
       setSub(connectTo(market));
+      document.title = "Orderbooks: " + market;
     }
   }, [market]);
-
-  const addMarketRate = () => {
-    if (orderbook.asks.length && orderbook.bids.length) {
-      const high = parseFloat(orderbook.asks[0][0]);
-      const low = parseFloat(orderbook.bids[orderbook.bids.length - 1][0]);
-      setMarketRates((arr) => [(high + low) / 2, ...arr].slice(0, 250));
-    }
-  };
 
   useEffect(() => {
     if (sub && connected) {
@@ -140,6 +133,14 @@ function App() {
       sub.removeAllListeners();
     }
     setMarket(e.target.value);
+  };
+
+  const addMarketRate = () => {
+    if (orderbook.asks.length && orderbook.bids.length) {
+      const high = parseFloat(orderbook.asks[0][0]);
+      const low = parseFloat(orderbook.bids[orderbook.bids.length - 1][0]);
+      setMarketRates((arr) => [(high + low) / 2, ...arr].slice(0, 250));
+    }
   };
 
   return (
