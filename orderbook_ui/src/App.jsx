@@ -5,6 +5,7 @@ import {
   orderbook,
   checkIntegrity,
   addToOrderBook,
+  centrifuge,
 } from "./helpers";
 import "./App.css";
 
@@ -16,6 +17,7 @@ function App() {
   const [marketRates, setMarketRates] = useState([]);
   const [sub, setSub] = useState();
   const [connected, setConnected] = useState(false);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (market) {
@@ -40,6 +42,7 @@ function App() {
         setMarketRates([]);
         // Adds initial market rate to empty marketRates array
         addMarketRate();
+        setError(false);
       });
 
       sub.on("publication", (ctx) => {
@@ -65,6 +68,12 @@ function App() {
       setConnected(true);
     }
   }, [sub, connected]);
+
+  useEffect(() => {
+    centrifuge.on("error", () => {
+      setError(true);
+    });
+  }, []);
 
   useEffect(() => {
     // useEffect to handle logic for graph showing market price over last 100 transactions
@@ -156,24 +165,79 @@ function App() {
         </select>
         <h1>{market ? market : "Orderbooks"}</h1>
       </header>
-      <div className="card">
-        <div className="asks">
-          <table>
-            <thead>
-              <tr>
-                <th>Price</th>
-                <th>Amount</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {asks
-                .map((ask, idx) => (
-                  <tr key={ask[0]}>
-                    <td>{ask[0]}</td>
-                    <td>{ask[1]}</td>
+      {error ? (
+        <h3>There was a connection error... Atttempting to reconnect...</h3>
+      ) : (
+        <div className="card">
+          <div className="asks">
+            <table>
+              <thead>
+                <tr>
+                  <th>Price</th>
+                  <th>Amount</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {asks
+                  .map((ask, idx) => (
+                    <tr key={ask[0]}>
+                      <td>{ask[0]}</td>
+                      <td>{ask[1]}</td>
+                      <td>
+                        {asks
+                          .slice(0, idx + 1)
+                          .reduce((accum, curr) => {
+                            return accum + parseFloat(curr[1]);
+                          }, 0)
+                          .toFixed(4)}
+                      </td>
+                    </tr>
+                  ))
+                  .toReversed()}
+              </tbody>
+            </table>
+          </div>
+          {marketRates.length ? (
+            <h4
+              className={
+                marketRates.reduce((accum, curr) => {
+                  return accum + curr;
+                }, 0) /
+                  marketRates.length <
+                marketRates[0]
+                  ? "bullish"
+                  : marketRates.reduce((accum, curr) => {
+                        return accum + curr;
+                      }, 0) /
+                        marketRates.length ===
+                      marketRates[0]
+                    ? "neutral"
+                    : "bearish"
+              }
+            >
+              $
+              {marketRates[0] > 10 ? marketRates[0] : marketRates[0].toFixed(7)}
+            </h4>
+          ) : null}
+          <canvas ref={canvasRef} />
+          <div className="bids">
+            <table>
+              <thead>
+                <tr>
+                  <th>Price</th>
+                  <th>Amount</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bids.toReversed().map((bid, idx) => (
+                  <tr key={bid[0]}>
+                    <td>{bid[0]}</td>
+                    <td>{bid[1]}</td>
                     <td>
-                      {asks
+                      {bids
+                        .toReversed()
                         .slice(0, idx + 1)
                         .reduce((accum, curr) => {
                           return accum + parseFloat(curr[1]);
@@ -181,62 +245,12 @@ function App() {
                         .toFixed(4)}
                     </td>
                   </tr>
-                ))
-                .toReversed()}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-        {marketRates.length ? (
-          <h4
-            className={
-              marketRates.reduce((accum, curr) => {
-                return accum + curr;
-              }, 0) /
-                marketRates.length <
-              marketRates[0]
-                ? "bullish"
-                : marketRates.reduce((accum, curr) => {
-                      return accum + curr;
-                    }, 0) /
-                      marketRates.length ===
-                    marketRates[0]
-                  ? "neutral"
-                  : "bearish"
-            }
-          >
-            ${marketRates[0] > 10 ? marketRates[0] : marketRates[0].toFixed(7)}
-          </h4>
-        ) : null}
-        <canvas ref={canvasRef} />
-        <div className="bids">
-          <table>
-            <thead>
-              <tr>
-                <th>Price</th>
-                <th>Amount</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bids.toReversed().map((bid, idx) => (
-                <tr key={bid[0]}>
-                  <td>{bid[0]}</td>
-                  <td>{bid[1]}</td>
-                  <td>
-                    {bids
-                      .toReversed()
-                      .slice(0, idx + 1)
-                      .reduce((accum, curr) => {
-                        return accum + parseFloat(curr[1]);
-                      }, 0)
-                      .toFixed(4)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
     </>
   );
 }
