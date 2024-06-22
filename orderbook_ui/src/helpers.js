@@ -77,6 +77,21 @@ export const orderbook = {
   marketId: null,
 };
 
+export const connectTo = (market) => {
+  orderbook.marketId = market;
+  if (market in subs) {
+    subs[market].subscribe();
+    return subs[market];
+  } else {
+    subs[market] = centrifuge.newSubscription(
+      `orderbook:${orderbook.marketId}`,
+    );
+    orderbook.marketId = market;
+  }
+  subs[market].subscribe();
+  return subs[market];
+};
+
 export const clearOrderBook = () => {
   orderbook.bids = [];
   orderbook.asks = [];
@@ -124,6 +139,9 @@ export const addToOrderBook = (ctx, group) => {
 };
 
 export const checkIntegrity = (ctx) => {
+  // ensures the orderbook is accurate by checking if proper
+  // sequence order is maintained. If a package arrives out
+  // of order, the function returns false and a resub occurs
   const prevSeq = orderbook.sequence;
   const newSeq = ctx.data.sequence;
   if (prevSeq && prevSeq + 1 != newSeq) {
@@ -135,32 +153,13 @@ export const checkIntegrity = (ctx) => {
   return true;
 };
 
-// let reconnectProc;
-
 export const centrifuge = new Centrifuge(socket, {
   debug: true,
-  // websocket: SockJS,
-  // websocket: WebSocket,
 });
 centrifuge.setToken(token);
 
 export const disconnect = () => {
   centrifuge.disconnect();
-};
-
-export const connectTo = (market) => {
-  orderbook.marketId = market;
-  if (market in subs) {
-    subs[market].subscribe();
-    return subs[market];
-  } else {
-    subs[market] = centrifuge.newSubscription(
-      `orderbook:${orderbook.marketId}`,
-    );
-    orderbook.marketId = market;
-  }
-  subs[market].subscribe();
-  return subs[market];
 };
 
 centrifuge.connect();

@@ -23,11 +23,18 @@ function App() {
     }
   }, [market]);
 
+  const addMarketRate = () => {
+    if (orderbook.asks.length && orderbook.bids.length) {
+      const high = parseFloat(orderbook.asks[0][0]);
+      const low = parseFloat(orderbook.bids[orderbook.bids.length - 1][0]);
+      setMarketRates((arr) => [(high + low) / 2, ...arr].slice(0, 250));
+    }
+  };
+
   useEffect(() => {
     if (sub && connected) {
       sub.on("subscribed", (ctx) => {
         // Fills the orderbook object with the values the orderbook received from the server
-        // clearOrderBook();
         orderbook.bids = ctx.data.bids;
         orderbook.asks = ctx.data.asks;
         orderbook.sequence = ctx.data.sequence;
@@ -36,12 +43,10 @@ function App() {
         orderbook.asksLen = orderbook.asks.length;
         setAsks(orderbook.asks);
         setBids(orderbook.bids);
+        // Clears out marketrates array when changing currencies
         setMarketRates([]);
-        if (orderbook.asks.length && orderbook.bids.length) {
-          const high = parseFloat(orderbook.asks[0][0]);
-          const low = parseFloat(orderbook.bids[orderbook.bids.length - 1][0]);
-          setMarketRates((arr) => [(high + low) / 2, ...arr].slice(0, 250));
-        }
+        // Adds initial market rate to empty marketRates array
+        addMarketRate();
       });
 
       sub.on("publication", (ctx) => {
@@ -60,11 +65,7 @@ function App() {
         setAsks(orderbook.asks);
         setBids(orderbook.bids);
         // Adds the new market rate to the marketRates array
-        if (orderbook.asks.length && orderbook.bids.length) {
-          const high = parseFloat(orderbook.asks[0][0]);
-          const low = parseFloat(orderbook.bids[orderbook.bids.length - 1][0]);
-          setMarketRates((arr) => [(high + low) / 2, ...arr].slice(0, 250));
-        }
+        addMarketRate();
       });
     }
     if (!connected && sub) {
@@ -134,9 +135,9 @@ function App() {
 
   const changeMarket = (e) => {
     // when a new market is selected, disconnect from the current market, and then set the new market with a useState
-    e.stopPropagation();
     if (sub) {
       sub.unsubscribe();
+      sub.removeAllListeners();
     }
     setMarket(e.target.value);
   };
