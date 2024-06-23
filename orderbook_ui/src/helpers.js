@@ -5,7 +5,7 @@ import { Centrifuge } from "centrifuge";
 // const { WebSocket } = require("ws");
 
 // live
-const token = process.env.JWT_TOKEN;
+const token = import.meta.env.VITE_JWT_TOKEN;
 const socket = "wss://api.prod.rabbitx.io/ws";
 // test
 // const token =
